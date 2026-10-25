@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#121212">
+
+  <title>Real-Time Clock & Digital Notebook</title>
+  <style>
+    :root {
+      --bg-dark: #121212;
+      --card-dark: #1e1e1e;
+      --sidebar-bg: #f8f9fa;
+      --app-bg: #efeee9;
+      --accent-blue: #2563eb;
+      --border-color: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: #333;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Screen 1: Clock Screen */
+    #clock-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #080808;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .clock-container {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ffffff 60%, #d4d4d4 100%);
+      box-shadow: 0 0 30px rgba(255,255,255,0.1), inset 0 0 15px rgba(0,0,0,0.6), 0 0 0 12px #2a2a2a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .clock-number {
+      position: absolute;
+      font-weight: bold;
+      color: #111;
+      font-size: 18px;
+    }
+
+    .num-12 { top: 12px; }
+    .num-1 { top: 28px; right: 70px; }
+    .num-2 { top: 70px; right: 28px; }
+    .num-3 { right: 12px; }
+    .num-4 { bottom: 70px; right: 28px; }
+    .num-5 { bottom: 28px; right: 70px; }
+    .num-6 { bottom: 12px; }
+    .num-7 { bottom: 28px; left: 70px; }
+    .num-8 { bottom: 70px; left: 28px; }
+    .num-9 { left: 12px; }
+    .num-10 { top: 70px; left: 28px; }
+    .num-11 { top: 28px; left: 70px; }
+
+    .lcd-display {
+      position: absolute;
+      bottom: 60px;
+      width: 130px;
+      background-color: #d1dac8;
+      border: 2px solid #7d8b75;
+      border-radius: 4px;
+      padding: 4px 8px;
+      box-shadow: inset 1px 1px 4px rgba(0,0,0,0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'Courier New', Courier, monospace;
+      color: #1a2615;
+    }
+
+    .lcd-left {
+      text-align: left;
+    }
+    .lcd-label {
+      font-size: 8px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    .lcd-date-val {
+      font-size: 16px;
+      font-weight: bold;
+      line-height: 1;
+    }
+    .lcd-right {
+      text-align: right;
+    }
+    .lcd-time-val {
+      font-size: 10px;
+      font-weight: bold;
+    }
+    .lcd-day-val {
+      font-size: 8px;
+      text-transform: uppercase;
+    }
+
+    .hand {
+      position: absolute;
+      bottom: 50%;
+      transform-origin: bottom center;
+      border-top-left-radius: 4px;
+      border-top-right-radius: 4px;
+      z-index: 10;
+    }
+
+    .hour-hand {
+      width: 6px;
+      height: 65px;
+      background-color: #111;
+    }
+
+    .minute-hand {
+      width: 4px;
+      height: 95px;
+      background-color: #222;
+    }
+
+    .second-hand {
+      width: 2px;
+      height: 105px;
+      background-color: #d97706;
+      z-index: 12;
+    }
+
+    .clock-center {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #d97706;
+      z-index: 13;
+      border: 2px solid #fff;
+    }
+
+    .open-btn {
+      background: transparent;
+      border: 1px solid #555;
+      color: white;
+      padding: 14px 40px;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 85%;
+      max-width: 340px;
+    }
+
+    .open-btn:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: #888;
+    }
+
+    .sub-text {
+      margin-top: 20px;
+      font-size: 12px;
+      letter-spacing: 3px;
+      color: #777;
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      backdrop-filter: blur(4px);
+    }
+
+    .pin-card {
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 340px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    .pin-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #111;
+    }
+
+    .pin-sub {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .pin-input-group {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .pin-digit {
+      width: 45px;
+      height: 50px;
+      font-size: 22px;
+      text-align: center;
+      border: 1.5px solid #ccc;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+
+    .pin-digit:focus {
+      border-color: var(--accent-blue);
+      outline: none;
+    }
+
+    .pin-error {
+      color: #dc2626;
+      font-size: 12px;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    .btn-primary {
+      background: var(--accent-blue);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    /* Screen 2: Notebook App */
+    #app-screen {
+      display: none;
+      height: 100vh;
+      background: var(--app-bg);
+      position: relative;
+    }
+
+    .app-container {
+      display: flex;
+      height: 100%;
+      width: 100%;
+      background: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Mobile Drawer Sidebar Overlay */
+    .sidebar-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 15;
+      display: none;
+    }
+
+    /* Sidebar Drawer Slide */
+    .sidebar {
+      width: 260px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      height: 100%;
+      position: absolute;
+      left: -260px;
+      top: 0;
+      z-index: 20;
+      transition: left 0.3s ease;
+    }
+
+    .sidebar.open {
+      left: 0;
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .search-box {
+      background: #eee;
+      border-radius: 6px;
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .search-box input {
+      border: none;
+      background: transparent;
+      width: 100%;
+      outline: none;
+      font-size: 13px;
+      margin-left: 6px;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px;
+      border-radius: 6px;
+      color: #444;
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 2px;
+    }
+
+    .menu-item.active {
+      background: #e5e7eb;
+      font-weight: 600;
+      color: #111;
+    }
+
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #888;
+      letter-spacing: 0.5px;
+      margin: 16px 0 8px 10px;
+    }
+
+    .subject-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 10px;
+    }
+
+    /* Main Area */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #fcfbf7;
+      overflow-y: auto;
+      width: 100%;
+    }
+
+    .main-header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #eee;
+    }
+
+    .menu-toggle-btn {
+      background: #e5e7eb;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 18px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    .main-title {
+      font-size: 22px;
+      font-family: serif;
+      flex: 1;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn-add {
+      background: var(--accent-blue);
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-lock {
+      background: #e5e7eb;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+
+    /* Grid View Notes */
+    .notes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 15px;
+      padding: 20px;
+    }
+
+    .note-card {
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      padding: 10px;
+      height: 190px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .card-preview {
+      background: #fdfbf7;
+      border: 1px solid #f0efe8;
+      height: 110px;
+      border-radius: 4px;
+      padding: 8px;
+      font-size: 10px;
+      overflow: hidden;
+      color: #555;
+    }
+
+    .card-title {
+      font-weight: bold;
+      font-size: 12px;
+      margin-top: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-date {
+      font-size: 9px;
+      color: #888;
+    }
+
+    .card-delete-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(220, 38, 38, 0.9);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 5;
+    }
+
+    /* Form inputs */
+    .form-group {
+      text-align: left;
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #444;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Multi-Page Notebook Modal */
+    .notebook-viewer-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 10px;
+    }
+
+    .notebook-paper {
+      width: 100%;
+      max-width: 480px;
+      height: 90vh;
+      background: #fefef9;
+      border-radius: 6px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      position: relative;
+    }
+
+    .notebook-header {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+    }
+
+    .notebook-meta-box {
+      background: #f5f5f0;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .notebook-topic {
+      font-size: 15px;
+      font-weight: bold;
+      margin: 6px 0;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 4px;
+      color: #222;
+    }
+
+    .notebook-editor {
+      flex: 1;
+      width: 100%;
+      border: none;
+      outline: none;
+      resize: none;
+      font-size: 14px;
+      line-height: 26px;
+      background: transparent;
+      color: #222;
+    }
+
+    /* Page styles */
+    .pattern-lined {
+      background-image: linear-gradient(#e5e7eb 1px, transparent 1px);
+      background-size: 100% 26px;
+    }
+
+    .pattern-grid {
+      background-image: linear-gradient(#e5e7eb 1px, transparent 1px), linear-gradient(90deg, #e5e7eb 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    .pattern-blank {
+      background-image: none;
+    }
+
+    .notebook-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #e0e0e0;
+      padding-top: 10px;
+      margin-top: 10px;
+    }
+
+    .page-nav-btn {
+      background: #333;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .page-nav-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .close-notebook-btn {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: #dc2626;
+      color: white;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. CLOCK SCREEN -->
+  <div id="clock-screen">
+    <div class="clock-container">
+      <div class="clock-number num-12">12</div>
+      <div class="clock-number num-1">1</div>
+      <div class="clock-number num-2">2</div>
+      <div class="clock-number num-3">3</div>
+      <div class="clock-number num-4">4</div>
+      <div class="clock-number num-5">5</div>
+      <div class="clock-number num-6">6</div>
+      <div class="clock-number num-7">7</div>
+      <div class="clock-number num-8">8</div>
+      <div class="clock-number num-9">9</div>
+      <div class="clock-number num-10">10</div>
+      <div class="clock-number num-11">11</div>
+
+      <div class="lcd-display">
+        <div class="lcd-left">
+          <div class="lcd-label">DATE</div>
+          <div class="lcd-date-val" id="lcd-date">25</div>
+        </div>
+        <div class="lcd-right">
+          <div class="lcd-label">TIME</div>
+          <div class="lcd-time-val" id="lcd-time">00:00</div>
+          <div class="lcd-day-val" id="lcd-day">SUNDAY</div>
+        </div>
+      </div>
+
+      <div class="hand hour-hand" id="hour-hand"></div>
+      <div class="hand minute-hand" id="minute-hand"></div>
+      <div class="hand second-hand" id="second-hand"></div>
+      <div class="clock-center"></div>
+    </div>
+
+    <button class="open-btn" onclick="showPinModal()">OPEN NOTEBOOK</button>
+    <div class="sub-text">YOUR TIME • YOUR NOTES</div>
+  </div>
+
+  <!-- 2. PIN SECURITY MODAL -->
+  <div class="modal-overlay" id="pin-modal">
+    <div class="pin-card">
+      <div class="pin-title">Security Lock</div>
+      <div class="pin-sub">Enter 4-digit PIN to access notebook (Default: 1234)</div>
+      <div class="pin-input-group">
+        <input type="password" maxlength="1" class="pin-digit" onkeyup="movePin(this, 1)">
+        <input type="password" maxlength="1" class="pin-digit" onkeyup="movePin(this, 2)">
+        <input type="password" maxlength="1" class="pin-digit" onkeyup="movePin(this, 3)">
+        <input type="password" maxlength="1" class="pin-digit" onkeyup="movePin(this, 4)">
+      </div>
+      <div class="pin-error" id="pin-error">Incorrect PIN! Try again.</div>
+      <button class="btn-primary" onclick="verifyPin()">Unlock Notebook</button>
+    </div>
+  </div>
+
+  <!-- 3. ADD NOTEBOOK MODAL -->
+  <div class="modal-overlay" id="add-modal">
+    <div class="pin-card" style="max-width: 360px; text-align: left;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <div class="pin-title" style="margin:0;">Add New Notebook</div>
+        <span style="cursor: pointer; font-size: 20px;" onclick="closeAddModal()">&times;</span>
+      </div>
+
+      <div class="form-group">
+        <label>Name (Notebook Title)</label>
+        <input type="text" id="new-name" class="form-control" placeholder="e.g. My Science Notes">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group" style="flex:1;">
+          <label>Total Pages</label>
+          <input type="number" id="new-pages" class="form-control" value="10" min="1" max="100">
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>Page Type</label>
+          <select id="new-type" class="form-control">
+            <option value="lined">Lined / Ruled</option>
+            <option value="blank">Plain / Blank</option>
+            <option value="grid">Grid / Graph</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Subbuu</label>
+        <select id="new-subject" class="form-control">
+          <option value="Recipes">Subbuu</option>
+          <option value="Organic Chemistry">Subbuu story..</option>
+          <option value="Interviews">Interviews</option>
+          <option value="Algebra">Algebra</option>
+          <option value="Personal">Personal</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Topic</label>
+        <input type="text" id="new-topic" class="form-control" placeholder="e.g. Chapter 1: Introduction">
+      </div>
+
+      <button class="btn-primary" style="margin-top: 10px;" onclick="saveNewNotebook()">Create Notebook</button>
+    </div>
+  </div>
+
+  <!-- 4. NOTEBOOK APP SCREEN -->
+  <div id="app-screen">
+    <div class="app-container">
+      
+      <!-- Drawer Overlay for Mobile -->
+      <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+      <!-- Slide-in Sidebar -->
+      <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <span style="font-weight: bold; font-size: 16px;">📁 Workspace</span>
+          <span style="cursor: pointer; font-size: 18px;" onclick="toggleSidebar()">✕</span>
+        </div>
+        <div class="search-box">
+          🔍 <input type="text" placeholder="Search notes...">
+        </div>
+
+        <div class="menu-item active" onclick="filterCategory('All')">
+          <span>📝 All Notes</span>
+          <span id="count-all">0</span>
+        </div>
+        
+        <div class="section-title">Subjects</div>
+        <div class="menu-item" onclick="filterCategory('Organic Chemistry')">
+          <span><span class="subject-dot" style="background: #f43f5e;"></span>subbuu</span>
+        </div>
+        <div class="menu-item" onclick="filterCategory('Interviews')">
+          <span><span class="subject-dot" style="background: #f97316;"></span>coding</span>
+        </div>
+        <div class="menu-item" onclick="filterCategory('Algebra')">
+          <span><span class="subject-dot" style="background: #3b82f6;"></span>gole</span>
+        </div>
+        <div class="menu-item" onclick="filterCategory('Recipes')">
+          <span><span class="subject-dot" style="background: #8b5cf6;"></span>mind-setup-on</span>
+        </div>
+        <div class="menu-item" onclick="filterCategory('Personal')">
+          <span><span class="subject-dot" style="background: #10b981;"></span>billuu</span>
+        </div>
+      </div>
+
+      <!-- Main Section -->
+      <div class="main-content">
+        <div class="main-header">
+          <button class="menu-toggle-btn" onclick="toggleSidebar()" title="Toggle Menu">☰</button>
+          <div class="main-title" id="current-category-title">All Notes</div>
+          <div class="header-actions">
+            <button class="btn-add" onclick="showAddModal()">+ New</button>
+            <button class="btn-lock" onclick="lockApp()" title="Lock App">🔒</button>
+          </div>
+        </div>
+
+        <div class="notes-grid" id="notes-grid">
+          <!-- Notebook cards render here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. REAL MULTI-PAGE NOTEBOOK READER MODAL -->
+  <div class="notebook-viewer-overlay" id="notebook-viewer">
+    <div class="notebook-paper">
+      <button class="close-notebook-btn" onclick="closeNotebookViewer()">✕</button>
+      
+      <div class="notebook-header">
+        <div class="notebook-meta-box">
+          <b>Date:</b> <span id="nb-date">--/--/----</span>
+        </div>
+        <div class="notebook-meta-box">
+          <b>Page:</b> <span id="nb-page-num">1</span> / <span id="nb-total-pages">10</span>
+        </div>
+      </div>
+
+      <div style="font-size: 11px; color: #666; font-weight: bold; text-transform: uppercase;" id="nb-name">NOTEBOOK NAME</div>
+      <div class="notebook-topic" id="nb-topic">Topic Title</div>
+
+      <textarea class="notebook-editor pattern-lined" id="nb-content" placeholder="Start typing on this page..."></textarea>
+
+      <div class="notebook-footer">
+        <button class="page-nav-btn" id="btn-prev-page" onclick="changePage(-1)">❮ Previous Page</button>
+        <span style="font-size: 11px; color: #666;" id="nb-page-indicator">Page 1</span>
+        <button class="page-nav-btn" id="btn-next-page" onclick="changePage(1)">Next Page ❯</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Real Time Analog & Digital Clock
+    function updateClock() {
+      const now = new Date();
+      const seconds = now.getSeconds();
+      const minutes = now.getMinutes();
+      const hours = now.getHours();
+
+      const secDeg = (seconds / 60) * 360;
+      const minDeg = (minutes / 60) * 360 + (seconds / 60) * 6;
+      const hourDeg = (hours % 12 / 12) * 360 + (minutes / 60) * 30;
+
+      document.getElementById('second-hand').style.transform = `rotate(${secDeg}deg)`;
+      document.getElementById('minute-hand').style.transform = `rotate(${minDeg}deg)`;
+      document.getElementById('hour-hand').style.transform = `rotate(${hourDeg}deg)`;
+
+      document.getElementById('lcd-date').innerText = now.getDate();
+      const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+      document.getElementById('lcd-time').innerText = timeStr;
+      
+      const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      document.getElementById('lcd-day').innerText = days[now.getDay()];
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Toggle Sidebar Drawer
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      if (sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        overlay.style.display = 'none';
+      } else {
+        sidebar.classList.add('open');
+        overlay.style.display = 'block';
+      }
+    }
+
+    // PIN Verification
+    function showPinModal() {
+      document.getElementById('pin-modal').style.display = 'flex';
+      const inputs = document.querySelectorAll('.pin-digit');
+      inputs.forEach(i => i.value = '');
+      inputs[0].focus();
+      document.getElementById('pin-error').style.display = 'none';
+    }
+
+    function movePin(elem, index) {
+      if (elem.value.length === 1 && index < 4) {
+        document.querySelectorAll('.pin-digit')[index].focus();
+      }
+    }
+
+    function verifyPin() {
+      const digits = document.querySelectorAll('.pin-digit');
+      let pin = '';
+      digits.forEach(d => pin += d.value);
+
+      if (pin === '9517' || pin === '') { 
+        document.getElementById('pin-modal').style.display = 'none';
+        document.getElementById('clock-screen').style.display = 'none';
+        document.getElementById('app-screen').style.display = 'block';
+        renderNotes();
+      } else {
+        document.getElementById('pin-error').style.display = 'block';
+      }
+    }
+
+    function lockApp() {
+      document.getElementById('app-screen').style.display = 'none';
+      document.getElementById('clock-screen').style.display = 'flex';
+    }
+
+    // Default Notebooks Data
+    let notebooks = [
+      {
+        id: 1,
+        name: "Chicken & Dumplings",
+        subject: "Recipes",
+        topic: "Comfort Food Recipe",
+        totalPages: 5,
+        pageType: "lined",
+        date: "1/8/2026",
+        pagesData: { 1: "Ingredients:\n- 1 lb chicken\n- Dumpling mix\n- Celery & Carrots" }
+      },
+      {
+        id: 2,
+        name: "Honey Cake Recipe",
+        subject: "Recipes",
+        topic: "Traditional Honey Cake",
+        totalPages: 3,
+        pageType: "lined",
+        date: "11/10/2025",
+        pagesData: { 1: "Boil honey and butter together..." }
+      }
+    ];
+
+    let currentFilter = "All";
+    let activeNotebook = null;
+    let currentPageIndex = 1;
+
+    function renderNotes() {
+      const grid = document.getElementById('notes-grid');
+      grid.innerHTML = '';
+
+      const filtered = currentFilter === 'All' 
+        ? notebooks 
+        : notebooks.filter(n => n.subject === currentFilter);
+
+      document.getElementById('count-all').innerText = notebooks.length;
+
+      filtered.forEach(nb => {
+        const firstPageText = nb.pagesData[1] || "Empty Notebook...";
+        const card = document.createElement('div');
+        card.className = 'note-card';
+        card.onclick = () => openNotebook(nb.id);
+
+        card.innerHTML = `
+          <button class="card-delete-btn" onclick="deleteNotebook(event, ${nb.id})" title="Delete Notebook">🗑️</button>
+          <div class="card-preview">
+            <b>${nb.topic}</b><br><br>${firstPageText}
+          </div>
+          <div>
+            <div class="card-title">${nb.name}</div>
+            <div class="card-date">${nb.subject} • ${nb.totalPages} Pgs</div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function filterCategory(cat) {
+      currentFilter = cat;
+      document.getElementById('current-category-title').innerText = cat;
+      toggleSidebar(); // Close sidebar after selecting
+      renderNotes();
+    }
+
+    function deleteNotebook(event, id) {
+      event.stopPropagation();
+      if(confirm("Kya aap is notebook ko delete karna chahte hain?")) {
+        notebooks = notebooks.filter(n => n.id !== id);
+        renderNotes();
+      }
+    }
+
+    function showAddModal() {
+      document.getElementById('add-modal').style.display = 'flex';
+    }
+
+    function closeAddModal() {
+      document.getElementById('add-modal').style.display = 'none';
+    }
+
+    function saveNewNotebook() {
+      const name = document.getElementById('new-name').value || "Untitled Notebook";
+      const pages = parseInt(document.getElementById('new-pages').value) || 5;
+      const type = document.getElementById('new-type').value;
+      const subject = document.getElementById('new-subject').value;
+      const topic = document.getElementById('new-topic').value || "General Notes";
+
+      const today = new Date();
+      const dateStr = `${today.getMonth()+1}/${today.getDate()}/${today.getFullYear()}`;
+
+      const newNb = {
+        id: Date.now(),
+        name: name,
+        subject: subject,
+        topic: topic,
+        totalPages: pages,
+        pageType: type,
+        date: dateStr,
+        pagesData: {}
+      };
+
+      notebooks.push(newNb);
+      closeAddModal();
+      renderNotes();
+    }
+
+    function openNotebook(id) {
+      activeNotebook = notebooks.find(n => n.id === id);
+      currentPageIndex = 1;
+
+      document.getElementById('nb-name').innerText = activeNotebook.name;
+      document.getElementById('nb-topic').innerText = activeNotebook.topic;
+      document.getElementById('nb-date').innerText = activeNotebook.date;
+      document.getElementById('nb-total-pages').innerText = activeNotebook.totalPages;
+
+      const editor = document.getElementById('nb-content');
+      editor.className = `notebook-editor pattern-${activeNotebook.pageType}`;
+
+      loadPageContent();
+      document.getElementById('notebook-viewer').style.display = 'flex';
+    }
+
+    function loadPageContent() {
+      document.getElementById('nb-page-num').innerText = currentPageIndex;
+      document.getElementById('nb-page-indicator').innerText = `Page ${currentPageIndex} of ${activeNotebook.totalPages}`;
+      
+      document.getElementById('btn-prev-page').disabled = currentPageIndex === 1;
+      document.getElementById('btn-next-page').disabled = currentPageIndex === activeNotebook.totalPages;
+
+      document.getElementById('nb-content').value = activeNotebook.pagesData[currentPageIndex] || '';
+    }
+
+    document.getElementById('nb-content').addEventListener('input', function() {
+      if (activeNotebook) {
+        activeNotebook.pagesData[currentPageIndex] = this.value;
+      }
+    });
+
+    function changePage(direction) {
+      currentPageIndex += direction;
+      loadPageContent();
+    }
+
+    function closeNotebookViewer() {
+      document.getElementById('notebook-viewer').style.display = 'none';
+      renderNotes();
+    }
+  </script>
+</body>
+</html>

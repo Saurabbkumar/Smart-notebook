@@ -1,0 +1,9 @@
+{
+  "name": "Smart Digital Notebook",
+  "short_name": "Notebook",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#121212",
+  "description": "Real-time clock and secure multi-page digital notebook."
+}
